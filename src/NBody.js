@@ -180,13 +180,14 @@ function App() {
         </div>
       </div>
       <div id="controls">
-        <button onClick={() => {setRun(true)}}>Start</button>
-        <button onClick={() => {setRun(false)}}>Pause</button>
-        <button onClick={() => {setReset(true)}}>Reset</button>
+        <button className={run ? 'pause' : 'play'} onClick={() => setRun(r => !r)}>
+          {run ? '⏸' : '▶'}
+        </button>
         <div style={{display:"flex", flexDirection: "column", alignItems: "center"}}> 
           <span>Speed: {speed}</span>
           <input type="range" min="1" max="100" value={speed} onChange={e => setSpeed(Number(e.target.value))} />
         </div>
+        <button className="reset" onClick={() => setReset(true)}>⏹</button>
       </div>
     </div>
   );
