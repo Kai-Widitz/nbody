@@ -1,12 +1,7 @@
 import NBody from './NBody'
 
 function App() {
-  return (
-    <div>
-      <header>Your Website Name</header>
-      <NBody />
-    </div>
-  );
+  return <NBody />
 }
 
 export default App;
