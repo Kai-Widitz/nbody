@@ -16,8 +16,6 @@ header {
 #display {
   position: relative;
   padding: 5px;
-  border-radius: 15px;
-  border: black solid;
   margin: 10px 0;
   background-color: #111115;
   box-shadow: 0 0 100px #40424d;
@@ -35,4 +33,9 @@ header {
   background-color: white;
   font-size: 0.9em;
   font-weight: 700;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
 }
