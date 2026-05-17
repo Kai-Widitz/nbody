@@ -15,8 +15,10 @@ class Body {
 function App() {
   const EARTH_MASS = 5.972e25;
   const G = 6.6743 * Math.pow(10,-11)
-  const WIDTH = window.innerWidth;
-  const HEIGHT = window.innerHeight;
+  const displayRef = useRef(null);
+  const [dims, setDims] = useState({ width: window.innerWidth, height: window.innerHeight });
+  const WIDTH = dims.width;
+  const HEIGHT = dims.height;
   const BASE_ZOOM = (3.47 * Math.pow(10,8)) / 150;
   const [zoomLevel, setZoomLevel] = useState(1);
   const ZOOM = BASE_ZOOM / zoomLevel;
@@ -31,14 +33,13 @@ function App() {
   const [flashes, setFlashes] = useState([]);
   const [space, setSpace] = useState([])
 
-  useEffect(() => {
-    const canvas = starsRef.current;
-    if (!canvas) return;
+  function drawStars(canvas) {
     const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#ffffff';
     for (let s = 0; s < 400; s++) {
-      const x = (Math.sin(s * 127.1) * 0.5 + 0.5) * WIDTH;
-      const y = (Math.sin(s * 311.7) * 0.5 + 0.5) * HEIGHT;
+      const x = (Math.sin(s * 127.1) * 0.5 + 0.5) * canvas.width;
+      const y = (Math.sin(s * 311.7) * 0.5 + 0.5) * canvas.height;
       const r = (Math.sin(s * 74.3) * 0.5 + 0.5) * 1.2;
       ctx.globalAlpha = (Math.sin(s * 53.1) * 0.5 + 0.5) * 0.8 + 0.2;
       ctx.beginPath();
@@ -46,9 +47,41 @@ function App() {
       ctx.fill();
     }
     ctx.globalAlpha = 1;
+  }
+
+  useEffect(() => {
+    const canvas = starsRef.current;
+    if (!canvas) return;
+    drawStars(canvas);
+
+    let timeout;
+    const handleResize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      clearTimeout(timeout);
+      timeout = setTimeout(() => drawStars(canvas), 150);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(timeout);
+    };
   }, []);
 
-  
+  useEffect(() => {
+    const update = () => {
+      if (displayRef.current) {
+        setDims({
+          width: displayRef.current.clientWidth,
+          height: displayRef.current.clientHeight,
+        });
+      }
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
 
   useEffect(() => {
     if (run) {
@@ -81,6 +114,12 @@ function App() {
       setBodies(current);
     }
   }, [run, bodies])
+  useEffect(() => {
+    if (canvasRef.current) {
+      canvasRef.current.width = WIDTH;
+      canvasRef.current.height = HEIGHT;
+    }
+  }, [WIDTH, HEIGHT]);
 
   function updateBodies(bodies, step) {
     const newBodies = bodies.map(b => ({...b, trail: [...b.trail]}));
@@ -171,17 +210,6 @@ function App() {
     setSpace(frame);
   }
 
-  function getCentreOfMass(bodies) {
-    let totalMass = 0;
-    let cx = 0, cy = 0;
-    for (let body of bodies) {
-      cx += body.xs * body.mass;
-      cy += body.ys * body.mass;
-      totalMass += body.mass;
-    }
-    return {x: cx / totalMass, y: cy / totalMass};
-  }
-
   function randomColor() {
     const colors = [
       '#e07f4f', '#e0d44f', '#4fe0a3',
@@ -202,8 +230,6 @@ function App() {
     const xs = (e.clientX - rect.left - mx) * ZOOM;
     const ys = (e.clientY - rect.top - my) * ZOOM;
 
-    const minMass = 7.34e22;
-    const maxMass = 5.972e25;
     const mass = Math.pow(10, 21 + Math.random() * 5);
 
     const initXs = init ? init.xs : 0;
@@ -302,7 +328,7 @@ function App() {
 
   return (
     <div className="App">
-      <div id="display" onClick={handleDisplayClick} style={{width:'100vw', height:'100vh', position:'relative', backgroundColor:'#111115'}}>
+      <div id="display" ref={displayRef} onClick={handleDisplayClick} style={{width:'100vw', height:'100vh', position:'relative', backgroundColor:'#111115'}}>
         {showHint && <div className="hint">click to add planets</div>}
         <canvas ref={starsRef} width={WIDTH} height={HEIGHT} style={{position:'absolute', top:0, left:0, zIndex:0}} />
         <canvas ref={canvasRef} width={WIDTH} height={HEIGHT} style={{position:'absolute', top:0, left:0, zIndex:1}} />
