@@ -1,7 +1,19 @@
 import './App.css';
 import { useState, useEffect, useRef } from 'react'
-
+class Body {
+  constructor(xs, ys, x, y, mass, name, color) {
+    this.xs = xs;
+    this.ys = ys;
+    this.x = x;
+    this.y = y;
+    this.mass = mass;
+    this.name = name;
+    this.color = color;
+    this.trail = [];
+  }
+}
 function App() {
+  const EARTH_MASS = 5.972e25;
   const G = 6.6743 * Math.pow(10,-11)
   const WIDTH = window.innerWidth;
   const HEIGHT = window.innerHeight;
@@ -17,6 +29,8 @@ function App() {
   const stepRef = useRef(0);
   const [showHint, setShowHint] = useState(true);
   const [flashes, setFlashes] = useState([]);
+  const [space, setSpace] = useState([])
+
   useEffect(() => {
     const canvas = starsRef.current;
     if (!canvas) return;
@@ -34,20 +48,7 @@ function App() {
     ctx.globalAlpha = 1;
   }, []);
 
-  class Body {
-    constructor(xs, ys, x, y, mass, name, color) {
-      this.xs = xs;
-      this.ys = ys;
-      this.x = x;
-      this.y = y;
-      this.mass = mass;
-      this.name = name;
-      this.dx = 0;
-      this.dy = 0;
-      this.color = color;
-      this.trail = [];
-    }
-  }
+  
 
   useEffect(() => {
     if (run) {
@@ -62,9 +63,9 @@ function App() {
       const result = handleCollisions(current, ZOOM);
       current = result.bodies;
       if (result.collisions.length > 0) {
-        const com = getCentreOfMass(current);
-        const mx = WIDTH / 2 - com.x / ZOOM;
-        const my = HEIGHT / 2 - com.y / ZOOM;
+        const init = current.find(b => b.name === "INIT");
+        const mx = WIDTH / 2 - (init ? init.xs : 0) / ZOOM;
+        const my = HEIGHT / 2 - (init ? init.ys : 0) / ZOOM;
         setFlashes(f => [
           ...f,
           ...result.collisions.map(c => ({
@@ -95,7 +96,7 @@ function App() {
       body.ys += body.y;
       if (step % 10 === 0) {
         body.trail.push({x: body.xs, y: body.ys});
-        if (body.trail.length > 500) body.trail.shift();
+        if (body.trail.length > 800) body.trail.shift();
       }
     }
 
@@ -123,16 +124,15 @@ function App() {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, WIDTH, HEIGHT);
-    const com = getCentreOfMass(bodies);
-    const mx = WIDTH / 2 - com.x / ZOOM;
-    const my = HEIGHT / 2 - com.y / ZOOM;
+    const init = bodies.find(b => b.name === "INIT");
+    const mx = WIDTH / 2 - (init ? init.xs : 0) / ZOOM;
+    const my = HEIGHT / 2 - (init ? init.ys : 0) / ZOOM;
     const frame = [];
     let i = 0;
 
     for (let body of bodies) {
-      const EARTH_MASS = 5.972e25;
       let size = Math.pow(body.mass / EARTH_MASS, 0.1) * 30;
-      if (body.name == "INIT") size *= 2;
+      if (body.name === "INIT") size *= 2;
       body.trail.forEach((pos, idx) => {
         const opacity = idx / body.trail.length;
         const trailSize = Math.max(2, 8 * opacity) / 2;
@@ -195,18 +195,34 @@ function App() {
   function handleDisplayClick(e) {
     setShowHint(false);
     const rect = e.currentTarget.getBoundingClientRect();
-    const com = getCentreOfMass(bodies);
-    const mx = WIDTH / 2 - com.x / ZOOM;
-    const my = HEIGHT / 2 - com.y / ZOOM;
+    const init = bodies.find(b => b.name === "INIT");
+    const mx = WIDTH / 2 - (init ? init.xs : 0) / ZOOM;
+    const my = HEIGHT / 2 - (init ? init.ys : 0) / ZOOM;
 
     const xs = (e.clientX - rect.left - mx) * ZOOM;
     const ys = (e.clientY - rect.top - my) * ZOOM;
 
-    const mass = Math.pow(10, 22 + Math.random() * 4);
-    const angle = Math.atan2(ys - com.y, xs - com.x) + Math.PI / 2;
-    const spd = 5000 + Math.random() * 7000;
-    const vx = Math.cos(angle) * spd;
-    const vy = Math.sin(angle) * spd;
+    const minMass = 7.34e22;
+    const maxMass = 5.972e25;
+    const mass = Math.pow(10, 21 + Math.random() * 5);
+
+    const initXs = init ? init.xs : 0;
+    const initYs = init ? init.ys : 0;
+    const initMass = init ? init.mass : 5.972e26;
+    const dx = xs - initXs;
+    const dy = ys - initYs;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+
+    const orbitalSpd = Math.sqrt(G * initMass / dist);
+
+    const toInit = Math.atan2(dy, dx);
+    const angleOffset = (Math.random() - 0.5) * 0.5;
+
+    const retrograde = Math.random() < 0.3 ? -1 : 1;
+    const eccentricity = 0.5 + Math.random() * 1.5;
+    const angle = toInit + Math.PI / 2 + angleOffset;
+    const vx = Math.cos(angle) * orbitalSpd * eccentricity * retrograde + (init ? init.x : 0);
+    const vy = Math.sin(angle) * orbitalSpd * eccentricity * retrograde + (init ? init.y : 0);
 
     const newBody = new Body(xs, ys, vx, vy, mass, `B${bodies.length}`, randomColor());
     setBodies(b => {
@@ -223,7 +239,6 @@ function App() {
     const toRemove = new Set();
     const collisions = [];
     const newBodies = bodies.map(b => ({...b, trail: [...b.trail]}));
-    const EARTH_MASS = 5.972e25;
 
     for (let i = 0; i < newBodies.length; i++) {
       for (let j = i + 1; j < newBodies.length; j++) {
@@ -234,7 +249,6 @@ function App() {
         const dy = b1.ys - b2.ys;
         const dist = Math.sqrt(dx*dx + dy*dy);
 
-        // calculate radius in simulation units based on visual size
         const size1 = Math.pow(b1.mass / EARTH_MASS, 0.1) * 30 * (b1.name === "INIT" ? 2 : 1);
         const size2 = Math.pow(b2.mass / EARTH_MASS, 0.1) * 30 * (b2.name === "INIT" ? 2 : 1);
         const collisionDist = (size1 / 2 + size2 / 2) * ZOOM;
@@ -285,8 +299,6 @@ function App() {
       setReset(false)
     }
   }, [reset])
-
-  const [space, setSpace] = useState([])
 
   return (
     <div className="App">
