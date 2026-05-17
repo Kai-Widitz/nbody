@@ -15,6 +15,7 @@ jobs:
       - run: npm install
       - run: git config --global user.email "kwiditz@gmail.com"
       - run: git config --global user.name "Kai-Widitz"
+      - run: git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/Kai-Widitz/nbody.git
       - run: npm run deploy
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
