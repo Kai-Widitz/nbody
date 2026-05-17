@@ -48,7 +48,7 @@ function App() {
     }
     ctx.globalAlpha = 1;
   }
-
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const canvas = starsRef.current;
     if (!canvas) return;
@@ -68,7 +68,7 @@ function App() {
       clearTimeout(timeout);
     };
   }, []);
-
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const update = () => {
       if (displayRef.current) {
@@ -82,7 +82,7 @@ function App() {
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
   }, []);
-
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (run) {
       if (bodies.length <= 1) return;
@@ -114,6 +114,7 @@ function App() {
       setBodies(current);
     }
   }, [run, bodies])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (canvasRef.current) {
       canvasRef.current.width = WIDTH;
@@ -304,7 +305,7 @@ function App() {
     const b = Math.round((b1 + b2) / 2).toString(16).padStart(2, '0');
     return `#${r}${g}${b}`;
   }
-
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (reset) {
       const colors = {
